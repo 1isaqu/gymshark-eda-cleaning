@@ -1,0 +1,179 @@
+/*
+  tokens.css
+  ==========
+  Single source of colour truth for the whole dashboard.
+  Owned exclusively by Agent B (scaffold). This is the ONLY file in the
+  project allowed to contain a raw hex / rgb() / hsl() / rgba() literal.
+  Every component file (sections/, components/) must consume colour
+  through the tokens below. Never hardcode a colour anywhere else.
+
+  ----------------------------------------------------------------------
+  HOW SECTION AGENTS SHOULD CONSUME THESE TOKENS (read this, pick this):
+  ----------------------------------------------------------------------
+  Every token below is mirrored into Tailwind's theme via `@theme inline`
+  at the bottom of this file, under the `--color-*` namespace. That means
+  Tailwind v4 auto-generates real utility classes for every token:
+
+      bg-paper           text-ink            border-rule
+      bg-paper-raised    text-ink-muted      border-accent
+      bg-surface         text-ink-faint      border-alert
+      bg-accent          text-accent         ring-focus
+      bg-accent-soft     text-alert
+      bg-alert           text-paper (etc.)
+
+  THE CONVENTION (pick one, this is it): use the generated Tailwind
+  utility classes (`bg-ink`, `text-accent`, `border-rule`, ...) for every
+  ordinary CSS property Tailwind can reach (background, text, border,
+  ring, divide, outline). Reach for plain `var(--ink)` / `var(--accent)`
+  ONLY where Tailwind utilities cannot go: inline SVG `fill`/`stroke`
+  attributes, values handed to Motion's `animate`/`style`/`useTransform`,
+  `<canvas>` drawing, or a custom `box-shadow`/`gradient` stop. Both paths
+  read the exact same runtime CSS variable, so they never drift.
+
+  We use `@theme inline` (not a plain `@theme`) specifically because
+  these variables change value under `@media (prefers-color-scheme:
+  dark)`. `inline` tells Tailwind to keep emitting `var(--token)` in the
+  generated utility's CSS instead of baking in the light-mode hex at
+  build time, so the same utility class is correct in both modes without
+  a `dark:` variant anywhere in component code. Components never branch
+  on theme.
+
+  Recipe for a filled accent button/pill (verified AA in both modes,
+  see ratios below): `bg-accent text-paper`.
+
+  ----------------------------------------------------------------------
+  FULL TOKEN TABLE (hex values and their WCAG contrast ratios)
+  ----------------------------------------------------------------------
+  Role            Light            Dark             Notes
+  --paper         #F6F4EE          #17140F          page ground
+  --paper-raised  #FCFBF7          #1E1B15          raised panel (lighter than paper)
+  --surface       #ECE7DB          #241F17          subtle fill: chips, rows, active pills
+  --rule          #E3DFD3          #332D22          hairline borders/dividers (decorative, not text)
+  --ink           #211D17          #F3F0E7          primary text
+  --ink-muted     #5C5647          #B8B2A2          secondary text
+  --ink-faint     #8F8877          #8A8473          tertiary text: captions/large text/icons ONLY,
+                                                     see contrast note below
+  --accent        #436608          #C6F135          the one signal colour (Gymshark green)
+  --accent-soft   #E4EFD3          #263216           low-emphasis accent fill/wash
+  --alert         #A8341F          #E2694F          price-outlier semantics ONLY, nothing else
+  --focus         alias of --accent  alias of --accent  focus-visible ring colour
+
+  Contrast ratios actually measured (WCAG 2 relative-luminance formula):
+
+    LIGHT MODE                                        DARK MODE
+    ink        / paper          15.24 : 1  (AAA)      ink        / paper          16.12 : 1  (AAA)
+    ink-muted  / paper           6.64 : 1  (AA)        ink-muted  / paper           8.68 : 1  (AAA)
+    ink-faint  / paper           3.21 : 1  (large text / UI only, NOT body text)
+                                                       ink-faint  / paper           4.92 : 1  (AA, still treat as large/caption-only for parity)
+    accent     / paper           6.08 : 1  (AA)        accent     / paper          14.02 : 1  (AAA)
+    alert      / paper           6.01 : 1  (AA)        alert      / paper           5.57 : 1  (AA)
+    ink        / paper-raised   16.19 : 1  (AAA)       ink        / paper-raised   15.07 : 1  (AAA)
+    accent     / paper-raised    6.45 : 1  (AA)        accent     / paper-raised   13.11 : 1  (AAA)
+    ink        / surface        13.59 : 1  (AAA)       ink        / surface        14.36 : 1  (AAA)
+    accent     / surface         5.42 : 1  (AA)        accent     / surface        12.49 : 1  (AAA)
+    alert      / surface         5.36 : 1  (AA)        alert      / surface         4.96 : 1  (AA)
+    paper text on accent fill    6.08 : 1  (AA)        paper text on accent fill   14.02 : 1  (AAA)
+    accent / accent-soft         5.60 : 1  (AA)        accent / accent-soft        10.34 : 1  (AAA)
+
+  Notes:
+  - `--ink-faint` fails 4.5:1 body-text AA in light mode (3.21:1). Use it
+    ONLY for large text (>=18px, or >=14px bold), icons, or decorative
+    labels, in BOTH modes (kept symmetric on purpose so agents don't have
+    to reason about mode-dependent exceptions). Never use ink-faint for
+    small body copy or data values.
+  - `--rule` against `--paper` is intentionally low contrast (~1.2:1):
+    it is a decorative hairline, not text, and is exempt from text
+    contrast rules. Do not use `--rule` as a text colour.
+  - `--accent` is deliberately a DIFFERENT literal hex per mode (a deep
+    grass green in light, a bright volt lime in dark). This is not a
+    mistake: a true neon volt lime cannot pass 4.5:1 against a light
+    paper background (the physics of relative luminance forbid it), so
+    the light-mode value is calibrated darker while staying in the same
+    green hue family. Dark mode gets the full, honest volt-green pop.
+    Both are "the one signal colour"; only the calibration differs, per
+    the dark-mode token-swap protocol.
+*/
+
+:root {
+  /* Ground and surfaces */
+  --paper: #f6f4ee;
+  --paper-raised: #fcfbf7;
+  --surface: #ece7db;
+  --rule: #e3dfd3;
+
+  /* Text */
+  --ink: #211d17;
+  --ink-muted: #5c5647;
+  --ink-faint: #8f8877;
+
+  /* Signal colour + semantics */
+  --accent: #436608;
+  --accent-soft: #e4efd3;
+  --alert: #a8341f;
+
+  /* Interaction */
+  --focus: var(--accent);
+
+  /* Shadow tint (tinted to ink, never pure black on a light ground) */
+  --shadow: rgba(33, 29, 23, 0.14);
+
+  /* Shape lock: radius 0 for data/chart surfaces (Tailwind default
+     rounded-none already covers this), 14px for gallery cards, full
+     pill for interactive pills/buttons (Tailwind default rounded-full
+     already covers this). Only the 14px card radius needs a token. */
+  --radius-card: 14px;
+
+  /* z-index scale, so nav/overlays never fight arbitrary z-50 spam.
+     These numbers deliberately match Tailwind's own z-scale steps, so
+     in practice just use the Tailwind utility (z-40 / z-50 / z-[60]);
+     these vars exist for the rare inline `style={{ zIndex: ... }}`
+     case (e.g. a Motion-animated overlay) where a utility can't reach. */
+  --z-nav: 40;
+  --z-overlay: 50;
+  --z-tooltip: 60;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #17140f;
+    --paper-raised: #1e1b15;
+    --surface: #241f17;
+    --rule: #332d22;
+
+    --ink: #f3f0e7;
+    --ink-muted: #b8b2a2;
+    --ink-faint: #8a8473;
+
+    --accent: #c6f135;
+    --accent-soft: #263216;
+    --alert: #e2694f;
+
+    --focus: var(--accent);
+
+    --shadow: rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Mirror every colour token into Tailwind v4's theme so utilities like
+   bg-ink / text-accent / border-rule / ring-focus exist. `inline` keeps
+   the emitted CSS referencing var(--token) at runtime (see doc block
+   above) so the dark-mode media-query swap above keeps working through
+   the generated utility classes with zero `dark:` variants. */
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-surface: var(--surface);
+  --color-rule: var(--rule);
+
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-alert: var(--alert);
+
+  --color-focus: var(--focus);
+
+  --radius-card: var(--radius-card);
+}

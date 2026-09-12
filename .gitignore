@@ -56,3 +56,13 @@ Thumbs.db
 
 # outputs de análises
 notebooks/__pycache__/
+
+# dashboard (vite/react), built separately
+dashboard/node_modules/
+dashboard/dist/
+
+# stray browser-automation artifacts
+dashboard/.playwright-cli/
+
+# power bi file stays local, see powerbi/README.md
+*.pbix
