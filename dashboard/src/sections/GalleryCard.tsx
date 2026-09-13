@@ -132,7 +132,9 @@ interface GalleryCardProps {
 
 export function GalleryCard({ item }: GalleryCardProps) {
   const tilt = useTilt();
-  const { reducedMotion } = tilt;
+  // `flat` covers both reasons a card should not do 3D: the user asked
+  // for reduced motion, or the device has no hovering pointer to track.
+  const flat = !tilt.tiltEnabled;
   const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
 
   // A cached photo can finish decoding BEFORE React attaches onLoad, in
@@ -178,13 +180,13 @@ export function GalleryCard({ item }: GalleryCardProps) {
   );
 
   return (
-    <div style={reducedMotion ? undefined : { perspective: "1200px" }} className="h-full">
+    <div style={flat ? undefined : { perspective: "1200px" }} className="h-full">
       <motion.div
         ref={tilt.ref}
         {...tilt.handlers}
         data-tilt-card=""
         style={
-          reducedMotion
+          flat
             ? undefined
             : {
                 rotateX: tilt.rotateX,
@@ -200,7 +202,7 @@ export function GalleryCard({ item }: GalleryCardProps) {
         className={[
           "group relative flex h-full flex-col rounded-card border bg-paper-raised transition-colors",
           item.is_outlier ? "border-alert/50" : "border-rule hover:border-accent/60",
-          reducedMotion ? "shadow-[0_10px_30px_-14px_var(--shadow)]" : "",
+          flat ? "shadow-[0_10px_30px_-14px_var(--shadow)]" : "",
         ]
           .filter(Boolean)
           .join(" ")}
@@ -211,7 +213,7 @@ export function GalleryCard({ item }: GalleryCardProps) {
         <div
           data-tilt-layer="photo"
           className="relative aspect-[4/5] w-full overflow-hidden rounded-t-card bg-surface"
-          style={reducedMotion ? undefined : { transform: "translateZ(22px)" }}
+          style={flat ? undefined : { transform: "translateZ(22px)" }}
         >
           {status !== "error" ? (
             <img
@@ -225,7 +227,7 @@ export function GalleryCard({ item }: GalleryCardProps) {
               className={[
                 "h-full w-full object-cover transition-[opacity,transform] duration-500",
                 status === "loaded" ? "opacity-100" : "opacity-0",
-                reducedMotion ? "" : "group-hover:scale-[1.045]",
+                flat ? "" : "group-hover:scale-[1.045]",
               ]
                 .filter(Boolean)
                 .join(" ")}
@@ -252,7 +254,7 @@ export function GalleryCard({ item }: GalleryCardProps) {
             </p>
           ) : null}
 
-          {!reducedMotion && status === "loaded" && (
+          {!flat && status === "loaded" && (
             <motion.div
               aria-hidden="true"
               className="pointer-events-none absolute inset-0"
@@ -266,7 +268,7 @@ export function GalleryCard({ item }: GalleryCardProps) {
         <div
           data-tilt-layer="text"
           className="flex flex-1 flex-col gap-1.5 p-4"
-          style={reducedMotion ? undefined : { transform: "translateZ(38px)" }}
+          style={flat ? undefined : { transform: "translateZ(38px)" }}
         >
           <h3 className="line-clamp-2 text-sm font-medium leading-snug text-ink">{item.title}</h3>
           <p className="text-xs text-ink-muted">{item.product_type}</p>

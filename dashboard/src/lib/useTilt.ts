@@ -13,12 +13,38 @@
     hardware once 48 cards are mounted.
   - Springs are what make this feel physical rather than robotic: the
     raw pointer value snaps instantly, the spring lags and settles.
-  - `prefers-reduced-motion` pins every output to its neutral value.
+  - The effect is gated twice, on `prefers-reduced-motion` and on whether
+    the device has a hovering pointer at all. Both collapse into the one
+    `tiltEnabled` flag a card branches on, so a card never has to reason
+    about why it is flat, only that it is.
 */
 import { useCallback, useMemo, useRef } from "react";
 import { useMotionValue, useSpring, useTransform } from "motion/react";
 import type { MotionValue } from "motion/react";
 import { useReducedMotion } from "./useReducedMotion";
+import { createMediaQueryHook } from "./useMediaQuery";
+
+/**
+ * Whether this device has a pointer that can hover at all.
+ *
+ * A touch screen reports `hover: none` and `pointer: coarse`. There is no
+ * cursor to track there, so the tilt can never fire, yet without this
+ * check every card still builds a 3D context: a `perspective` ancestor,
+ * `preserve-3d`, and two `translateZ` layers, all composited on every
+ * paint for an effect that cannot happen. Across 48 cards that is real
+ * work on exactly the hardware least able to afford it.
+ *
+ * `and (pointer: fine)` excludes devices that technically report hover
+ * but only through a coarse pointer, where a tilt keyed to cursor
+ * position is meaningless anyway.
+ *
+ * Falls back to true: if matchMedia is missing we assume a desktop with a
+ * mouse, so the effect is present rather than mysteriously absent.
+ */
+const useHoverCapable = createMediaQueryHook(
+  "(hover: hover) and (pointer: fine)",
+  true,
+);
 
 /** Spring feel for the tilt. Low stiffness + high damping reads as
  *  "heavy glass panel", not "wobbly jelly". */
@@ -126,8 +152,15 @@ export interface UseTilt {
    *  specular highlight gradient that tracks the cursor. */
   glareX: MotionValue<string>;
   glareY: MotionValue<string>;
-  /** True when the user asked for reduced motion. The gallery should
-   *  skip `perspective` and the highlight layer entirely when set. */
+  /**
+   * The single flag a card should branch on. False when the user asked
+   * for reduced motion OR the device cannot hover, and in both cases the
+   * card should skip `perspective`, `preserve-3d`, every `translateZ`
+   * layer and the highlight, and render flat.
+   */
+  tiltEnabled: boolean;
+  /** The reduced-motion preference on its own, for anything that needs
+   *  to distinguish "user asked for less motion" from "no cursor here". */
   reducedMotion: boolean;
 }
 
@@ -146,6 +179,8 @@ export interface UseTilt {
 export function useTilt(options: UseTiltOptions = {}): UseTilt {
   const { maxTiltDeg = DEFAULT_MAX_TILT_DEG } = options;
   const reducedMotion = useReducedMotion();
+  const hoverCapable = useHoverCapable();
+  const tiltEnabled = hoverCapable && !reducedMotion;
   const ref = useRef<HTMLDivElement | null>(null);
 
   // Raw, unsprung normalised pointer position within the card.
@@ -176,7 +211,7 @@ export function useTilt(options: UseTiltOptions = {}): UseTilt {
 
   const onPointerMove = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
-      if (reducedMotion) return;
+      if (!tiltEnabled) return;
       const element = ref.current;
       if (!element) return;
 
@@ -188,7 +223,7 @@ export function useTilt(options: UseTiltOptions = {}): UseTilt {
       ny.set(clamp((event.clientY - rect.top) / rect.height - 0.5));
       hover.set(1);
     },
-    [reducedMotion, nx, ny, hover],
+    [tiltEnabled, nx, ny, hover],
   );
 
   const onPointerLeave = useCallback(() => {
@@ -210,6 +245,7 @@ export function useTilt(options: UseTiltOptions = {}): UseTilt {
     hoverProgress,
     glareX,
     glareY,
+    tiltEnabled,
     reducedMotion,
   };
 }
