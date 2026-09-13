@@ -232,9 +232,14 @@ finding: after the greedy image filler runs, only 7 of 44,831 products (0.02%) a
 
 recommendation: don't spend more engineering time on the fallback heuristic for this — the return is close to zero. resolving 7 specific products by hand (upload the real photos) is cheaper than designing and maintaining a 4th matching tier for a problem this small.
 
-finding: `product_type` has 91 unique raw values but only 85 after normalizing case and whitespace — e.g. "Mens T-Shirt" (4,430 rows) vs "mens T-Shirt" (35 rows), and "footwear" (91 rows) vs "Footwear" (115 rows). same category, split into two counts purely by casing.
+finding: `product_type` has 90 unique raw values but only 84 after normalizing case and whitespace, through 6 fragmented groups — e.g. "Mens T-Shirt" (4,430 rows) vs "mens T-Shirt" (35 rows), and "footwear" (91 rows) vs "Footwear" (115 rows). same category, split into two counts purely by casing.
 
-recommendation: this silently fragments category counts (the "top 5 categories" list above would shift if normalized) and will keep reappearing with every new data export, since the cleaning pipeline only treats the symptom. the real fix belongs upstream — a constrained field or normalization step at the point of data entry/etl — not another downstream cleaning rule.
+recommendation: this silently inflates the apparent number of categories and understates the real ones, and it will keep reappearing with every new data export, since the cleaning pipeline only treats the symptom. the real fix belongs upstream — a constrained field or normalization step at the point of data entry/etl — not another downstream cleaning rule.
+
+two corrections to earlier versions of this finding, both found while building the dashboard:
+
+- the counts were previously given as 91 and 85. both figures counted the 7 rows with a null `product_type` as if "no category" were a category name. `nunique()` excluding nulls gives 90 raw and 84 normalized. the gap of 6 was right either way, and matches the 6 casing-collision groups exactly, which is why the off-by-one survived: the difference looked correct while both absolute numbers were wrong.
+- this section previously claimed the "top 5 categories" list above would shift if normalized. it does not. the top 10 ordering is byte-for-byte identical before and after normalizing. what changes is two of the counts, not the ranking: mens t-shirt 4,430 -> 4,465 (+35) and womens shorts 2,691 -> 2,698 (+7). the honest claim is that the numbers are wrong, not that the leaderboard is wrong.
 
 tests
 ```

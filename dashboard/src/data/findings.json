@@ -18,8 +18,8 @@
     "median_price": 25.0,
     "min_price": 1.0,
     "max_price": 1000.0,
-    "product_types_raw": 91,
-    "product_types_normalized": 85,
+    "product_types_raw": 90,
+    "product_types_normalized": 84,
     "top_categories": [
       {
         "product_type": "Mens T-Shirt",
@@ -1091,8 +1091,8 @@
     ]
   },
   "categories": {
-    "raw_unique": 91,
-    "normalized_unique": 85,
+    "raw_unique": 90,
+    "normalized_unique": 84,
     "collapsed_groups": 6,
     "pairs": [
       {

@@ -325,8 +325,12 @@ def build_overview(preclean: pd.DataFrame, clean_df: pd.DataFrame, pipeline: dic
         "median_price": round(float(price.median()), 2),
         "min_price": round(float(price.min()), 2),
         "max_price": round(float(price.max()), 2),
-        "product_types_raw": int(raw_pt.nunique(dropna=False)),
-        "product_types_normalized": int(norm_pt.nunique(dropna=False)),
+        # dropna=True de proposito: com dropna=False o bucket de nulos entra na
+        # contagem como se "sem categoria" fosse um nome de categoria, e os
+        # numeros saem 91/85 em vez dos corretos 90/84. os 7 nulos sao tratados
+        # separadamente por clean() (product_type_filled).
+        "product_types_raw": int(raw_pt.nunique()),
+        "product_types_normalized": int(norm_pt.nunique()),
         "top_categories": build_top_categories(preclean, 10),
     }
 
@@ -595,9 +599,24 @@ def build_categories_block(preclean: pd.DataFrame) -> dict:
             }
         )
 
+    # ver comentario em build_overview: nulo nao e uma categoria, entao
+    # dropna=True. 90 valores brutos colapsam em 84 normalizados, e a
+    # diferenca (6) bate exatamente com len(collapsed_norms).
+    raw_unique = int(raw_pt.nunique())
+    normalized_unique = int(normalize_series_keep_na(raw_pt).nunique())
+    # este assert e o que pega o bug do bucket de nulos: com dropna=False os
+    # dois numeros sobem 1 cada, a diferenca continua 6 e o erro passa
+    # despercebido nas contagens absolutas. aqui ele falha alto.
+    if raw_unique - normalized_unique != len(collapsed_norms):
+        raise AssertionError(
+            f"raw_unique - normalized_unique = {raw_unique - normalized_unique}, "
+            f"mas ha {len(collapsed_norms)} grupos colapsados. "
+            "provavel contagem do bucket de nulos como categoria."
+        )
+
     return {
-        "raw_unique": int(raw_pt.nunique(dropna=False)),
-        "normalized_unique": int(normalize_series_keep_na(raw_pt).nunique(dropna=False)),
+        "raw_unique": raw_unique,
+        "normalized_unique": normalized_unique,
         "collapsed_groups": len(collapsed_norms),
         "pairs": pairs,
         "top10_raw": top10_raw,
