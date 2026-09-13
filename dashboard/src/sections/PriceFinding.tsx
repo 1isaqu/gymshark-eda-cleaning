@@ -25,7 +25,7 @@
        positioned overlay layer that shares the plot's percentage
        coordinate space. Labels therefore sit on the project type scale
        (text-xs = 12px at 375px, text-sm = 14px from md up), pick up the
-       real font stack and token colours, and can be measured and read
+       real font stack and token colors, and can be measured and read
        like any other text on the page.
 
   Because HTML labels and SVG marks are driven by the same PLOT
@@ -217,24 +217,32 @@ export function PriceFinding() {
 
   return (
     <SectionShell id="price" fullBleed>
+      {/* Opening. Deliberately NOT the page's headline-then-muted-lead
+          rhythm: a connective line hands off from the overview first,
+          and the lead facts are a primary-ink declarative at display
+          size rather than a secondary-ink restatement of the headline. */}
       <div className="mx-auto max-w-7xl px-4 md:px-8">
-        <h2 className="max-w-[20ch] text-4xl md:text-6xl font-sans tracking-tight text-ink">
+        <p className="max-w-[52ch] text-sm leading-relaxed text-ink-muted md:text-base">
+          The overview stopped at an average. An average absorbs almost
+          anything, which is exactly why it is the wrong place to stop.
+        </p>
+        <h2 className="mt-5 max-w-[20ch] text-4xl md:text-6xl font-sans tracking-tight text-ink">
           A handful of prices that do not belong on the same chart as the rest.
         </h2>
-        <p className="mt-6 max-w-[65ch] text-base md:text-lg leading-relaxed text-ink-muted">
+        <p className="mt-7 max-w-[46ch] text-xl md:text-3xl leading-snug text-ink">
           Every price above{" "}
-          <span className="numeral font-mono text-ink">
+          <span className="numeral font-mono">
             {formatCurrency(price.outlier_threshold)}
           </span>{" "}
-          in this dataset turns out to be exactly{" "}
-          <span className="numeral font-mono text-ink">
+          here is exactly{" "}
+          <span className="numeral font-mono text-alert">
             {formatCurrency(price.outlier_price)}
           </span>
-          , carried by{" "}
-          <span className="numeral font-mono text-ink">
+          , in{" "}
+          <span className="numeral font-mono">
             {formatInteger(price.outlier_count)}
           </span>{" "}
-          rows out of the whole catalog.
+          rows of the whole catalog.
         </p>
       </div>
 
@@ -491,11 +499,21 @@ export function PriceFinding() {
           </div>
         </div>
 
-        <div className="mt-14 md:mt-20 max-w-[65ch] pb-4">
-          <p className="text-base md:text-lg leading-relaxed text-ink-muted">
+        {/* RECOMMENDATION BLOCK. One of three on the page (price, images,
+            categories). The device is shared byte for byte across all
+            three sections so the judgment calls read as one recurring
+            move: a 2px ink rule above, a sans heading opening with "The
+            recommendation:", and body copy in PRIMARY ink one step up
+            the type scale from the section's prose. Do not restyle one
+            of the three on its own. */}
+        <div className="mt-14 md:mt-20 max-w-[62ch] border-t-2 border-ink pt-7 pb-4">
+          <h3 className="text-2xl md:text-3xl font-sans tracking-tight text-ink">
+            The recommendation: flag it upstream, do not drop it.
+          </h3>
+          <p className="mt-5 text-lg md:text-xl leading-relaxed text-ink">
             A flat price that does not change by size is not how apparel
             pricing works. At{" "}
-            <span className="numeral font-mono text-ink">
+            <span className="numeral font-mono">
               {formatCurrency(price.outlier_price)}
             </span>
             , about{" "}
@@ -503,13 +521,13 @@ export function PriceFinding() {
               {formatMultiple(price.multiple_of_mean)}
             </span>{" "}
             the dataset's mean price of{" "}
-            <span className="numeral font-mono text-ink">
+            <span className="numeral font-mono">
               {formatCurrency(findings.overview.mean_price)}
             </span>
             , this reads as a probable price data-entry error rather than a
-            legitimate premium line. The recommendation is to flag it back
-            to the source catalogue, not to quietly drop it as a modelling
-            outlier.
+            legitimate premium line. Flag it back to the source catalog and
+            have it corrected there. Quietly dropping the rows as modeling
+            outliers would hide the error and ship it again next export.
           </p>
         </div>
       </div>

@@ -17,6 +17,15 @@
   It is meant to read as a callback to the image finding above, not as
   an apology.
 
+  DONOR COUNT: the borrowed cards currently resolve to ONE donor photo,
+  so a reader filtering to that category sees two different titles over
+  the same frame. That is the filler working as documented, not a
+  rendering bug, so the lead paragraph says it. The claim is derived
+  (`new Set(borrowed.map(item => item.image)).size`), never typed: if a
+  future export lends from several donors the sentence switches to the
+  counted variant on its own, and with fewer than two borrowed rows it
+  disappears entirely.
+
   COUNTER: the visible count and the aria-live announcement both read
   `renderedItems.length`, which is the exact array the grid maps over,
   so the two can never drift from what is on screen under any filter.
@@ -67,9 +76,16 @@ export function Gallery() {
     [activeFilter],
   );
 
-  const borrowedCount = useMemo(
-    () => galleryItems.filter((item) => item.image_is_borrowed).length,
+  const borrowedItems = useMemo(
+    () => galleryItems.filter((item) => item.image_is_borrowed),
     [],
+  );
+  const borrowedCount = borrowedItems.length;
+  /** How many distinct photographs the borrowed cards resolve to. 1 means
+   *  every borrowed card is showing the same frame as the others. */
+  const borrowedSourceCount = useMemo(
+    () => new Set(borrowedItems.map((item) => item.image)).size,
+    [borrowedItems],
   );
 
   const shownCount = renderedItems.length;
@@ -86,8 +102,21 @@ export function Gallery() {
           <span className="numeral text-ink">{formatInteger(borrowedCount)}</span> of these{" "}
           <span className="numeral text-ink">{formatInteger(totalCount)}</span> photos belong to a
           different product: those variants had none of their own, so the image filler from earlier
-          on this page lent them one, and the cards say so. Flagged products also carry a note on the
-          pricing anomaly.
+          on this page lent them one, and the cards say so.{" "}
+          {borrowedCount > 1 && borrowedSourceCount === 1 ? (
+            <>
+              One donor photo covers all of them, so those cards repeat a single frame rather than
+              showing two garments that happen to look alike.{" "}
+            </>
+          ) : null}
+          {borrowedCount > 1 && borrowedSourceCount > 1 ? (
+            <>
+              They were lent by{" "}
+              <span className="numeral text-ink">{formatInteger(borrowedSourceCount)}</span> different
+              donor photos.{" "}
+            </>
+          ) : null}
+          Flagged products also carry a note on the pricing anomaly.
         </p>
       </div>
 
@@ -101,8 +130,12 @@ export function Gallery() {
                 type="button"
                 aria-pressed={isActive}
                 onClick={() => setActiveFilter(option)}
+                // min-h-11 (44px) with the label centred inside: the old
+                // px-4 py-1.5 pill measured 30px tall, under the 44px
+                // touch-target guidance, with only the 8px gap-2 between
+                // the wrapped rows on a 375px phone.
                 className={[
-                  "rounded-full border px-4 py-1.5 text-xs font-medium transition-colors",
+                  "inline-flex min-h-11 items-center justify-center rounded-full border px-4 py-1.5 text-xs font-medium transition-colors",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-paper",
                   isActive
                     ? "border-accent bg-accent text-paper"
@@ -147,7 +180,7 @@ export function Gallery() {
           <button
             type="button"
             onClick={() => setActiveFilter(ALL_LABEL)}
-            className="rounded-full border border-accent px-4 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent hover:text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-accent px-4 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent hover:text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
           >
             Show all products
           </button>

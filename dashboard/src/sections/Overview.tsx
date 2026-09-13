@@ -24,8 +24,19 @@ import { useReducedMotion } from "../lib/useReducedMotion";
 
 export function Overview() {
   const prefersReducedMotion = useReducedMotion();
-  const { overview, pipeline, source } = findings;
-  const maxCategoryCount = overview.top_categories[0].count;
+  const { overview, categories, pipeline, source } = findings;
+
+  // The ranked list below reads `categories.top10_normalized`, NOT
+  // `overview.top_categories`. The latter is the raw leaderboard, whose
+  // counts are split across case variants of the same label ("Mens
+  // T-Shirt" and "mens T-Shirt" counted separately); section 4 exists
+  // precisely to show that those raw counts are short. Printing them
+  // here under a "cleaned" heading made the page assert two
+  // incompatible things about the same ten rows. These are the merged
+  // counts and the normalized labels, byte for byte the same rows
+  // section 4 lands on, so the overview and the finding agree.
+  const rankedCategories = categories.top10_normalized;
+  const maxCategoryCount = rankedCategories[0].count;
 
   return (
     <SectionShell id="overview" className="pt-16! md:pt-24!">
@@ -42,7 +53,12 @@ export function Overview() {
           into one full width column where text-7xl fits with room. */}
       <div className="grid grid-cols-1 gap-y-10 lg:grid-cols-12 lg:items-end lg:gap-x-12">
         <div className="lg:col-span-7">
-          <p className="text-xs uppercase tracking-[0.14em] text-ink-muted font-mono">
+          {/* EYEBROW #1 of the 2 allowed on the page. Its treatment is
+              shared byte for byte with EYEBROW #2 in ImageFinding
+              (font-mono text-xs uppercase tracking-[0.14em] text-accent)
+              so the two read as one recurring device. If you restyle one,
+              restyle both. */}
+          <p className="font-mono text-xs uppercase tracking-[0.14em] text-accent">
             The Gymshark catalog, cleaned
           </p>
           <h1 className="mt-5 text-4xl md:text-6xl font-sans tracking-tight leading-[1.05] text-ink">
@@ -132,22 +148,25 @@ export function Overview() {
         Where the catalog concentrates
       </h2>
       <p className="mt-3 max-w-[60ch] text-sm md:text-base text-ink-muted">
-        The ten largest product types by row count, after cleaning.
+        The ten largest product types by row count, once the case variant
+        spellings of a label are merged into one category. They carry the
+        normalized lowercase labels the pipeline writes, which is why they
+        read the way they do.
       </p>
 
       <ol className="mt-8 md:mt-10 list-none">
-        {overview.top_categories.map((category, i) => {
+        {rankedCategories.map((category, i) => {
           const pct = (category.count / maxCategoryCount) * 100;
           return (
             <li
-              key={category.product_type}
+              key={category.label}
               className="flex items-baseline gap-4 py-3 border-b border-rule last:border-b-0"
             >
               <span className="numeral font-mono text-xs text-ink-muted w-6 shrink-0">
                 {formatInteger(i + 1)}
               </span>
               <span className="relative flex-1 text-sm md:text-base text-ink">
-                {category.product_type}
+                {category.label}
                 <motion.span
                   aria-hidden="true"
                   className="absolute left-0 -bottom-1.5 h-[3px] origin-left bg-ink-faint"

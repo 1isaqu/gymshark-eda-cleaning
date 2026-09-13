@@ -6,10 +6,16 @@
   (that is Overview's layout) and not a sticky funnel (that is
   ImageFinding's layout, directly above this one).
 
-  Part one mirrors each fragmented category's two raw spellings as a
-  pair of bars either side of a center line, scaled to that pair's own
+  Part one mirrors each fragmented category's raw spellings as a pair
+  of bars either side of a center line, scaled to that pair's own
   larger count so every row stays legible regardless of how big the
-  category is in absolute terms.
+  category is in absolute terms. Every group in the current export
+  holds exactly two spellings, but the generator emits every distinct
+  spelling for any normalized key with more than one, so a future
+  export can carry three or more. The left bar is always the dominant
+  spelling; the right bar is every other spelling combined, and each
+  of those spellings is listed with its own count beside it. Nothing
+  in a group is dropped, and the per-row totals keep adding up.
 
   Part two draws the top-10 raw ranking next to the top-10 normalized
   ranking and connects matching categories with a line. In the real
@@ -42,7 +48,7 @@
      the minority bar is clamped to MIN_MINOR_SCALE, and every clamped
      row says so on screen and prints the true share as a percentage
      next to it. The quantitative claim is carried by the number; the
-     bar is explicitly labelled as off scale where it is not to scale.
+     bar is explicitly labeled as off scale where it is not to scale.
      Do not remove the label and keep the clamp.
 */
 import { motion } from "motion/react";
@@ -50,14 +56,14 @@ import { SectionShell } from "../components/SectionShell";
 import { findings } from "../lib/findings";
 import { formatInteger, formatPercent } from "../lib/format";
 import { useReducedMotion } from "../lib/useReducedMotion";
-import type { CategoryPair, CategoryRankNormalized } from "../data/findings";
+import type { CategoryPair, CategoryRankNormalized, CategoryVariant } from "../data/findings";
 
 const EASE_OUT: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 /* Fraction of the 200-unit bar track below which a minority bar stops
    being visible at every viewport this page supports. 0.06 of a track
    that is ~104px wide at md and ~76px at 375px lands at ~6px and
-   ~4.5px, both readable as a mark. Rows clamped to it are labelled. */
+   ~4.5px, both readable as a mark. Rows clamped to it are labeled. */
 const MIN_MINOR_SCALE = 0.06;
 
 const rowVariants = {
@@ -76,28 +82,41 @@ function barVariants(target: number, delay: number) {
 }
 
 interface PairReading {
+  pair: CategoryPair;
   dominantRaw: string;
   dominantCount: number;
-  minorRaw: string;
-  minorCount: number;
-  /** Honest minor/dominant ratio, used for the percentage readout. */
+  /** Every spelling except the dominant one, count descending. Usually
+   *  one, never silently truncated when the export carries more. */
+  others: CategoryVariant[];
+  /** Sum of `others`, which is what the right-hand bar measures. */
+  othersCount: number;
+  /** Honest others/dominant ratio, used for the percentage readout. */
   trueScale: number;
   /** Ratio actually drawn, clamped up to MIN_MINOR_SCALE when needed. */
   drawnScale: number;
   isClamped: boolean;
 }
 
-function readPair(pair: CategoryPair): PairReading {
+/* Returns null for a group that cannot be drawn as a comparison at all
+   (no spellings, or a single spelling that never fragmented). The
+   generator only emits keys with more than one spelling, so this is a
+   guard against a malformed export rather than an expected branch. */
+function readPair(pair: CategoryPair): PairReading | null {
   const sorted = [...pair.variants].sort((a, b) => b.count - a.count);
   const dominant = sorted[0];
-  const minor = sorted[1];
-  const trueScale = minor.count / dominant.count;
+  const others = sorted.slice(1);
+  if (!dominant || others.length === 0 || dominant.count <= 0) {
+    return null;
+  }
+  const othersCount = others.reduce((sum, variant) => sum + variant.count, 0);
+  const trueScale = othersCount / dominant.count;
   const drawnScale = Math.max(trueScale, MIN_MINOR_SCALE);
   return {
+    pair,
     dominantRaw: dominant.raw,
     dominantCount: dominant.count,
-    minorRaw: minor.raw,
-    minorCount: minor.count,
+    others,
+    othersCount,
     trueScale,
     drawnScale,
     isClamped: drawnScale > trueScale,
@@ -146,12 +165,11 @@ function Bar({ target, originX, fill, reducedMotion, delay = 0 }: BarProps) {
 }
 
 interface PairRowProps {
-  pair: CategoryPair;
   reading: PairReading;
   reducedMotion: boolean;
 }
 
-function PairRow({ pair, reading, reducedMotion }: PairRowProps) {
+function PairRow({ reading, reducedMotion }: PairRowProps) {
   return (
     <motion.div
       initial={reducedMotion ? false : "hidden"}
@@ -197,18 +215,24 @@ function PairRow({ pair, reading, reducedMotion }: PairRowProps) {
         </div>
 
         <div className="text-left">
-          <p className="text-sm text-ink md:text-base">{reading.minorRaw}</p>
-          <p className="numeral text-xs text-ink-muted">{formatInteger(reading.minorCount)}</p>
+          {reading.others.map((variant) => (
+            <div key={variant.raw} className="mt-1.5 first:mt-0">
+              <p className="text-sm text-ink md:text-base">{variant.raw}</p>
+              <p className="numeral text-xs text-ink-muted">{formatInteger(variant.count)}</p>
+            </div>
+          ))}
           <p className="text-xs text-ink-muted">
-            <span className="numeral">{formatPercent(reading.trueScale * 100)}</span> of the
-            larger spelling
+            <span className="numeral">{formatPercent(reading.trueScale * 100)}</span>{" "}
+            {reading.others.length > 1
+              ? "combined, against the largest spelling"
+              : "of the larger spelling"}
             {reading.isClamped ? ", bar off scale" : null}
           </p>
         </div>
       </div>
       <p className="mt-2 text-center text-xs text-ink-muted">
-        one category, "{pair.norm}": <span className="numeral">{formatInteger(pair.total)}</span>{" "}
-        total once merged
+        one category, "{reading.pair.norm}":{" "}
+        <span className="numeral">{formatInteger(reading.pair.total)}</span> total once merged
       </p>
     </motion.div>
   );
@@ -230,8 +254,23 @@ export function CategoryFinding() {
     categories.top10_raw.map((entry) => [entry.label.toLowerCase(), entry]),
   );
 
-  const readings = categories.pairs.map(readPair);
+  const readings = categories.pairs
+    .map(readPair)
+    .filter((reading): reading is PairReading => reading !== null);
   const clampedCount = readings.filter((reading) => reading.isClamped).length;
+  /* Every group in the current export has exactly two spellings, so the
+     heading says two. If an export ever carries a group with three, the
+     heading stops claiming a number it cannot keep. */
+  const everyGroupIsAPair = readings.every((reading) => reading.others.length === 1);
+
+  /* Opening specimen: the loudest two spellings of the largest
+     fragmented group, read off the export rather than typed in, so the
+     section can open on the raw evidence instead of on another
+     headline-then-lead-stat move. Falls back to no specimen if a future
+     export ever ships without pairs. */
+  const specimen = categories.pairs[0]
+    ? [...categories.pairs[0].variants].sort((a, b) => b.count - a.count)
+    : [];
 
   const rowHeight = 34;
   const diagramHeight = rowHeight * categories.top10_normalized.length;
@@ -250,38 +289,54 @@ export function CategoryFinding() {
 
   return (
     <SectionShell id="categories">
+      {/* Opening. This section leads with the evidence itself, two raw
+          labels lifted straight out of the export, before it names the
+          problem, so it does not repeat the headline-then-lead-stat move
+          the sections above it use. */}
       <div className="max-w-[65ch]">
-        <h2 className="text-4xl tracking-tight text-ink md:text-6xl">
+        {specimen.length > 1 ? (
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-l-2 border-rule pl-4 font-mono text-sm text-ink-muted md:text-base">
+            <span className="text-ink">{specimen[0].raw}</span>
+            <span aria-hidden="true">/</span>
+            <span className="text-ink">{specimen[1].raw}</span>
+            <span className="font-sans">
+              one category, spelled more than one way
+            </span>
+          </div>
+        ) : null}
+        <h2 className="mt-6 text-4xl tracking-tight text-ink md:text-6xl">
           Some categories were counted twice, just spelled differently.
         </h2>
         <p className="mt-6 text-base leading-relaxed text-ink-muted md:text-lg">
-          The catalogue lists{" "}
+          The missing photos were a join that picked the wrong row. This is the
+          plainer failure sitting underneath it. The catalog lists{" "}
           <span className="numeral text-ink">{formatInteger(categories.raw_unique)}</span> raw
           category names. Normalize case and whitespace and only{" "}
           <span className="numeral text-ink">{formatInteger(categories.normalized_unique)}</span>{" "}
           remain, through{" "}
           <span className="numeral text-ink">{formatInteger(categories.collapsed_groups)}</span>{" "}
-          fragmented groups like these.
+          fragmented groups like that one.
         </p>
       </div>
 
       <div className="mt-14 md:mt-20">
-        <h3 className="text-2xl text-ink md:text-3xl">Same category, two spellings</h3>
+        <h3 className="text-2xl text-ink md:text-3xl">
+          {everyGroupIsAPair ? "Same category, two spellings" : "Same category, several spellings"}
+        </h3>
         <p className="mt-4 max-w-[65ch] text-sm leading-relaxed text-ink-muted md:text-base">
           Each pair is drawn against its own larger spelling, so the long bar is always full
           width. In{" "}
           <span className="numeral text-ink">{formatInteger(clampedCount)}</span> of these{" "}
           <span className="numeral text-ink">{formatInteger(readings.length)}</span> pairs the
           smaller spelling is a fraction of one pixel at that scale. Those bars are held at a
-          fixed minimum length so the mark still exists, and every one of them is labelled off
+          fixed minimum length so the mark still exists, and every one of them is labeled off
           scale. In those rows the percentage is the measurement, not the bar.
         </p>
         <div className="mt-8 flex flex-col">
-          {categories.pairs.map((pair, index) => (
+          {readings.map((reading) => (
             <PairRow
-              key={pair.norm}
-              pair={pair}
-              reading={readings[index]}
+              key={reading.pair.norm}
+              reading={reading}
               reducedMotion={reducedMotion}
             />
           ))}
@@ -394,14 +449,37 @@ export function CategoryFinding() {
         </div>
       </div>
 
-      <div className="mt-20 max-w-[65ch] md:mt-28">
-        <p className="text-base leading-relaxed text-ink-muted md:text-lg">
-          The fix that actually holds is not another cleaning rule. It belongs upstream,
-          as a constrained field or a normalization step at the point of data entry or
-          in the ETL job. A downstream rule only treats the symptom, and it gets
-          reintroduced the next time this catalogue is exported.
+      {/* RECOMMENDATION BLOCK. One of three on the page (price, images,
+          categories). The device is shared byte for byte across all three
+          sections so the judgment calls read as one recurring move: a 2px
+          ink rule above, a sans heading opening with "The
+          recommendation:", and body copy in PRIMARY ink one step up the
+          type scale from the section's prose. Do not restyle one of the
+          three on its own. */}
+      <div className="mt-20 max-w-[62ch] border-t-2 border-ink pt-7 md:mt-28">
+        <h3 className="font-sans text-2xl tracking-tight text-ink md:text-3xl">
+          The recommendation: constrain the field, do not clean it downstream.
+        </h3>
+        <p className="mt-5 text-lg leading-relaxed text-ink md:text-xl">
+          The fix that actually holds is not another cleaning rule. It belongs
+          upstream, as a constrained field or a normalization step at the point
+          of data entry or in the ETL job. A downstream rule only treats the
+          symptom, and the symptom comes back the next time this catalog is
+          exported.
         </p>
       </div>
+
+      {/* Closing synthesis. This is the last of the three findings, so it
+          carries the line that ties them together and hands the reader on
+          to the gallery. */}
+      <p className="mt-12 max-w-[62ch] text-base leading-relaxed text-ink-muted md:text-lg">
+        Three findings, one shape. A price that was typed wrong, a photo that
+        was joined wrong, a label that was spelled wrong. Not one of them is
+        fixed by making the output look tidier, and all three point back at the
+        moment the data was entered, which is the only place a fix survives the
+        next export. What follows is the catalog itself, the photos and the
+        prices exactly as the pipeline leaves them.
+      </p>
     </SectionShell>
   );
 }

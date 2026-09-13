@@ -212,6 +212,10 @@ class UrlLivenessChecker:
         self._cache: dict[str, bool] = {}
         self.network_checks = 0
         self.rejected: set[str] = set()
+        # urls que nao deu pra classificar (so erro de transporte). ficam fora
+        # do cache e sao contadas no relatorio final pra que uma rodada feita
+        # numa rede ruim seja visivel em vez de silenciosa.
+        self.undetermined: set[str] = set()
         if cache_path.exists():
             try:
                 loaded = json.loads(cache_path.read_text(encoding="utf-8"))
@@ -240,7 +244,13 @@ class UrlLivenessChecker:
                 return "error"
         return "error"
 
-    def _resolve(self, url: str) -> bool:
+    def _resolve(self, url: str) -> bool | None:
+        """True = viva, False = morta de verdade (4xx), None = indeterminado.
+
+        None e o caso em que so houve erro de transporte (timeout, dns, reset)
+        nas N tentativas. nao da pra afirmar que a url morreu, entao o veredito
+        nao pode virar um False persistido: isso congelaria uma foto boa como
+        morta por causa de uma queda de rede de 2 segundos."""
         for attempt in range(URL_CHECK_RETRIES):
             verdict = self._probe(url)
             if verdict == "live":
@@ -248,7 +258,7 @@ class UrlLivenessChecker:
             if verdict == "dead":
                 return False
             time.sleep(0.4 * (attempt + 1))
-        return False
+        return None
 
     def is_live(self, url: str) -> bool:
         with self._lock:
@@ -261,7 +271,15 @@ class UrlLivenessChecker:
         live = self._resolve(url)
         with self._lock:
             self.network_checks += 1
-            self._cache[url] = live
+            # so vereditos definitivos entram no cache em disco. indeterminado
+            # fica de fora pra ser reavaliado na proxima rodada.
+            if live is not None:
+                self._cache[url] = live
+        if live is None:
+            self.undetermined.add(url)
+            # indeterminado nao entra na galeria nesta rodada, mas tambem nao
+            # fica marcado como morto para as proximas.
+            return False
         if not live:
             self.rejected.add(url)
         return live
@@ -693,8 +711,10 @@ def build_gallery(
     # descartada em silencio: se estiver morta, falha alto.
     checker.warm([str(v) for v in outlier_rows["image"]])
     for _, row in outlier_rows.iterrows():
-        if not checker.is_live(str(row["image"])):
-            raise AssertionError(f"price-outlier image url is dead: {row['image']}")
+        url = str(row["image"])
+        if not checker.is_live(url):
+            reason = "unreachable" if url in checker.undetermined else "dead"
+            raise AssertionError(f"price-outlier image url is {reason}: {url}")
 
     pool = candidates[~candidates["handle"].isin(outlier_handles)].copy()
     top_cats = [row["label"] for row in categories_block["top10_raw"][:GALLERY_TOP_N_CATEGORIES]]
@@ -850,7 +870,8 @@ def main() -> None:
     print(
         f"image urls: {checker.checked} checked "
         f"({checker.network_checks} over the network this run), "
-        f"{len(checker.rejected)} rejected as dead"
+        f"{len(checker.rejected)} rejected as dead, "
+        f"{len(checker.undetermined)} left undetermined (network, not cached)"
     )
     borrowed = sum(1 for c in gallery if c["image_is_borrowed"])
     print(

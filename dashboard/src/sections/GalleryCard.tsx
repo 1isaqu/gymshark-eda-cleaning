@@ -170,6 +170,18 @@ export function GalleryCard({ item }: GalleryCardProps) {
   const shadowSpread = useTransform(tilt.hoverProgress, [0, 1], [-6, -10]);
   const boxShadow = useMotionTemplate`${shadowDriftX}px ${shadowOffsetY}px ${shadowBlur}px ${shadowSpread}px var(--shadow)`;
 
+  // `will-change` is a compositor hint, not a style: a permanent one on
+  // all 48 cards would hold 48 layer backing stores for the whole
+  // session, for cards the pointer may never reach. So it is driven off
+  // the same hover spring as everything else and is a MotionValue, which
+  // means the promotion is written straight to the node with no React
+  // re-render. It goes up as soon as the hover spring leaves rest and
+  // comes back down only after the spring has settled home, so the layer
+  // exists for the whole tilt, including the return journey.
+  const willChange = useTransform(tilt.hoverProgress, (value) =>
+    Math.abs(value) > 0.001 ? "transform" : "auto",
+  );
+
   return (
     <div style={reducedMotion ? undefined : { perspective: "1200px" }} className="h-full">
       <motion.div
@@ -184,7 +196,7 @@ export function GalleryCard({ item }: GalleryCardProps) {
                 rotateY: tilt.rotateY,
                 transformStyle: "preserve-3d",
                 boxShadow,
-                willChange: "transform",
+                willChange,
               }
         }
         // No `overflow-hidden` here on purpose. See the 3D context note
