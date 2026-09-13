@@ -9,7 +9,7 @@ simple pipeline for cleaning and normalizing the Gymshark dataset. the goal is t
 ## quickstart
 
 ```
-git clone https://github.com/zzaakkaass/gymshark-eda-cleaning.git
+git clone https://github.com/1isaqu/gymshark-eda-cleaning.git
 cd gymshark-eda-cleaning
 ```
 # create and activate venv (recommended)
@@ -133,6 +133,8 @@ pip install streamlit pandas
 ```
 
 web dashboard (data story)
+live: https://1isaqu.github.io/gymshark-eda-cleaning/
+
 `dashboard/` is a scroll-driven web version of the three findings below, ending
 in an interactive gallery of real product photos. it is a separate, more
 polished front end than the streamlit viewer, built with vite + react +
