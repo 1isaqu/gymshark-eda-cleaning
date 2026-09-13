@@ -281,6 +281,21 @@ export function ImageFinding() {
   );
   const soleUnresolvedType =
     unresolvedTypes.length === 1 ? unresolvedTypes[0] : null;
+  /*
+    The quoted record in step 1 is split into the entries that actually
+    removed rows from the remainder and the entry that did not. An entry
+    whose `products` equals its `remaining_after` counted the rows that
+    were left rather than the rows it filled, so it is residue, not a
+    rule. Derived from the two numbers, never from a key literal or a
+    position, so a regenerated export re-sorts itself correctly.
+  */
+  const ruleTiers = images.tiers.filter(
+    (tier) => tier.products !== tier.remaining_after,
+  );
+  const residueTiers = images.tiers.filter(
+    (tier) => tier.products === tier.remaining_after,
+  );
+
   const unresolvedPrices = images.unresolved_rows.map((row) => row.price);
   const unresolvedMinPrice = Math.min(...unresolvedPrices);
   const unresolvedMaxPrice = Math.max(...unresolvedPrices);
@@ -486,25 +501,184 @@ export function ImageFinding() {
                 over. Read top to bottom it says the gaps were mostly one join
                 away. That reading does not survive contact with the loop.
               </p>
-              <ul className="mt-6 divide-y divide-rule border-y border-rule">
-                {images.tiers.map((tier) => (
-                  <li
-                    key={tier.key}
-                    className="grid grid-cols-[1fr_auto_auto] items-baseline gap-4 py-3"
-                  >
-                    <span className="text-sm text-ink">{tier.label}</span>
-                    <span className="numeral text-sm text-ink-muted">
-                      {formatInteger(tier.products)}
-                    </span>
-                    <span className="numeral w-14 text-right text-sm text-ink-faint">
-                      {formatInteger(tier.remaining_after)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-3 text-xs text-ink-faint">
-                Rows filled by the rule, then rows still missing after it.
-              </p>
+              {/* ---- QUOTED RECORD --------------------------------------
+                  Not a ledger, and not the page's own voice. This is the
+                  cleaner's object shown in the cleaner's vocabulary, so
+                  the next three steps have something to take apart.
+                  Deliberately NOT a fake terminal: no prompt, no chrome,
+                  no timestamp, nothing invented. Every string below (key,
+                  rule) and both numbers are fields that exist in
+                  findings.json at the path printed above the frame.
+                  No hairlines here on purpose: PriceFinding owns the
+                  divide-y ledger and this block must not rhyme with it.
+                  Its only borrowed convention is the left quote gutter,
+                  which is a blockquote mark, not a terminal. */}
+              <div className="mt-6">
+                <p className="flex items-baseline justify-between gap-4 font-mono text-xs text-ink-muted">
+                  <span>findings.images.tiers</span>
+                  <span>
+                    <span className="numeral">
+                      {formatInteger(images.tiers.length)}
+                    </span>{" "}
+                    entries
+                  </span>
+                </p>
+
+                <div className="mt-2 border-l-2 border-ink bg-surface px-4 py-4 md:px-6 md:py-5">
+                  <table className="w-full border-collapse text-left">
+                    {/* Visible, not sr-only. The column heads are the raw
+                        field names on purpose, so this sentence is where
+                        every reader, sighted or not, is told what the two
+                        numbers mean. It is also the table's accessible
+                        name. */}
+                    <caption className="caption-top pb-4 text-left font-mono text-xs leading-relaxed text-ink-muted">
+                      <span className="block max-w-[56ch]">
+                        Cleaner output, verbatim, in the order the rules run:
+                        rows each entry counted, then rows still missing after
+                        it.
+                        {residueTiers.length > 0 ? (
+                          <>
+                            {" "}
+                            The last entry is the leftover, not a rule, so its
+                            two numbers count the same rows twice.
+                          </>
+                        ) : null}
+                      </span>
+                    </caption>
+                    <thead>
+                      <tr className="font-mono text-xs text-ink-muted">
+                        {/* Column widths are declared here so the two value
+                            columns sit close to the text they belong to.
+                            Left to auto layout the key column eats the whole
+                            step and the numbers strand themselves against
+                            the far edge. These are preferred widths, so
+                            min-content still wins at 375px. */}
+                        {/* "entry", not "key": the cell below carries the
+                            label, the machine key AND the rule string, so a
+                            head reading "key" would name only one of the
+                            three. It also matches the "<n> entries" count
+                            printed above the frame. */}
+                        <th scope="col" className="w-[52%] pb-3 pr-4 font-normal">
+                          entry
+                        </th>
+                        <th
+                          scope="col"
+                          className="w-[22%] pb-3 pl-4 text-right font-normal"
+                        >
+                          products
+                        </th>
+                        {/* The wrap opportunity is what keeps this column
+                            from forcing a horizontal scroll at 375px. */}
+                        <th
+                          scope="col"
+                          className="w-[26%] pb-3 pl-4 text-right font-normal"
+                        >
+                          {"remaining_"}
+                          <wbr />
+                          {"after"}
+                        </th>
+                      </tr>
+                    </thead>
+                    {/* Two groups, split on tier.products === remaining_after
+                        rather than on an index or a key literal: an entry
+                        that leaves the remainder exactly where it found it
+                        did not fill anything, so it is residue, not a rule.
+                        The split is whitespace only, never a rule line. */}
+                    <tbody>
+                      {ruleTiers.map((tier) => (
+                        <motion.tr
+                          key={tier.key}
+                          className="align-top"
+                          initial={reducedMotion ? undefined : { opacity: 0 }}
+                          whileInView={{ opacity: 1 }}
+                          viewport={{ once: true, amount: 0.6 }}
+                          transition={{
+                            duration: 0.4,
+                            ease: easeOut,
+                            delay: reducedMotion
+                              ? 0
+                              : images.tiers.indexOf(tier) * 0.07,
+                          }}
+                        >
+                          <th scope="row" className="py-2 pr-4 font-normal">
+                            <span className="block text-sm text-ink">
+                              {tier.label}
+                            </span>
+                            <span className="mt-1 block font-mono text-xs text-ink-muted">
+                              {tier.key}
+                            </span>
+                            <span className="mt-1.5 block max-w-[42ch] text-xs leading-relaxed text-ink-muted">
+                              {tier.rule}
+                            </span>
+                          </th>
+                          <td className="numeral py-2 pl-4 text-right text-sm text-ink">
+                            {formatInteger(tier.products)}
+                          </td>
+                          <td className="numeral py-2 pl-4 text-right text-sm text-ink-muted">
+                            {formatInteger(tier.remaining_after)}
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </tbody>
+                    <tbody>
+                      {residueTiers.map((tier) => (
+                        <motion.tr
+                          key={tier.key}
+                          className="align-top"
+                          initial={reducedMotion ? undefined : { opacity: 0 }}
+                          whileInView={{ opacity: 1 }}
+                          viewport={{ once: true, amount: 0.6 }}
+                          transition={{
+                            duration: 0.4,
+                            ease: easeOut,
+                            delay: reducedMotion
+                              ? 0
+                              : images.tiers.indexOf(tier) * 0.07,
+                          }}
+                        >
+                          <th scope="row" className="pb-2 pr-4 pt-7 font-normal">
+                            <span className="block text-sm text-ink">
+                              {tier.label}
+                            </span>
+                            <span className="mt-1 block font-mono text-xs text-ink-muted">
+                              {tier.key}
+                            </span>
+                            <span className="mt-1.5 block max-w-[42ch] text-xs leading-relaxed text-ink-muted">
+                              {tier.rule}
+                            </span>
+                          </th>
+                          <td className="numeral pb-2 pl-4 pt-7 text-right text-sm text-ink">
+                            {formatInteger(tier.products)}
+                          </td>
+                          <td className="numeral pb-2 pl-4 pt-7 text-right text-sm text-ink-muted">
+                            {formatInteger(tier.remaining_after)}
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* The zero is the value the section turns on three steps
+                  later, so it is made meaningful in prose rather than with
+                  a mark: no colour, no badge, nothing that would assert a
+                  conclusion step 1 has not earned. Guarded on the same
+                  reading it describes, so a regenerated export cannot
+                  leave this sentence claiming something the table does not
+                  show. */}
+              {tierType.products === 0 &&
+              tierType.remaining_after === tierHandle.remaining_after ? (
+                <p className="mt-4 max-w-[55ch] text-sm leading-relaxed text-ink-muted">
+                  One entry reads differently from the rest. Follow the second
+                  column down and the middle rule leaves the remainder at
+                  exactly the number it found it at,{" "}
+                  <span className="numeral text-ink">
+                    {formatInteger(tierType.remaining_after)}
+                  </span>
+                  , because it matched nothing at all.
+                </p>
+              ) : null}
             </motion.div>
 
             <motion.div {...stepMotion} className={stepClassName}>
