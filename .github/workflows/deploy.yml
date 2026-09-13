@@ -33,11 +33,13 @@ jobs:
       run:
         working-directory: dashboard
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      # Matches the local dev machine (24.x), so a build that passes here
+      # and a build that passes locally are running the same runtime.
+      - uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: "24"
           cache: npm
           cache-dependency-path: dashboard/package-lock.json
 
@@ -52,10 +54,15 @@ jobs:
       - name: build
         run: npm run build
 
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
 
       # path is relative to the workspace root, not to `working-directory`.
-      - uses: actions/upload-pages-artifact@v3
+      #
+      # v4 of this action stopped including dotfiles in the artifact. The
+      # Vite build emits none (just index.html and assets/), so nothing is
+      # lost here. If that ever changes, v5 has an `include-hidden-files`
+      # input rather than needing a pin back to v3.
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: dashboard/dist
 
@@ -67,4 +74,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
