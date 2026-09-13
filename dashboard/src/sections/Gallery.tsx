@@ -1,12 +1,11 @@
 /*
-  Gallery.tsx
-  ===========
-  The payoff section: a product grid of cursor-tilted cards. Owned by
-  Agent E. Layout family: product grid of 3D tilt cards, distinct from
-  every other section's composition (asymmetric hero, full-bleed strip
-  plot, sticky-pinned funnel, paired-bar diagram).
+  The payoff section: a product grid of cursor-tilted cards. Its
+  composition is deliberately unlike the other four (asymmetric hero,
+  full-bleed strip plot, sticky-pinned funnel, paired-bar diagram), so
+  the page never repeats a layout as the reader moves down it.
 
-  No eyebrow (per the section brief). Every number here (item counts,
+  No eyebrow here. The page uses two, both earlier, and a third would
+  turn a deliberate device into a template. Every number (item counts,
   borrowed-photo count) is derived at runtime from `findings.gallery`
   and formatted through `lib/format.ts`, never hardcoded.
 

@@ -1,6 +1,4 @@
 /*
-  ImageFinding.tsx
-  ================
   Section id "images". Layout family: sticky-pinned stepped funnel.
 
   The left column pins in place (position: sticky) while the right
@@ -14,7 +12,9 @@
   On screens under 768px the sticky column releases into normal flow and
   everything stacks top to bottom, per the mobile fallback rule.
 
-  Owns EYEBROW #2, the last eyebrow allowed on the page.
+  Carries one of the page's two small-caps section labels. The other is
+  in Overview. Two is the budget: a third turns a deliberate device into
+  a template.
 
   NARRATIVE NOTE (read before editing the copy):
   An earlier version of this section claimed that most missing photos
@@ -41,13 +41,6 @@ import { findings } from "../lib/findings";
 import { formatCurrency, formatInteger, formatPercent } from "../lib/format";
 import { useReducedMotion } from "../lib/useReducedMotion";
 
-/*
-  `findings.d.ts` is owned by another agent and does not yet describe the
-  regenerated `images.provenance` object, so read it through a local
-  structural type. The bridge is type level only: the generator writes
-  these five fields, and the cast stays correct if the shared type is
-  later widened to include them.
-*/
 const STICKY_QUERY = "(min-width: 768px)";
 
 /**
@@ -316,8 +309,8 @@ export function ImageFinding() {
           numbers before the explanation of them, and the prose opens by
           handing off from the price finding rather than restarting. */}
       <div className="max-w-[68ch]">
-        {/* EYEBROW #2, the last one allowed on the page. Its treatment is
-            shared byte for byte with EYEBROW #1 in Overview
+        {/* One of the page's two small-caps labels. Its treatment is
+            shared character for character with the one in Overview
             (font-mono text-xs uppercase tracking-[0.14em] text-accent)
             so the two read as one recurring device. If you restyle one,
             restyle both. */}

@@ -1,14 +1,9 @@
 /*
-  GalleryCard.tsx
-  ===============
-  The cursor-tracked 3D tilt product card. Owned by Agent E.
+  The cursor-tracked 3D tilt product card.
 
-  Consumes `useTilt()` from `lib/useTilt.ts` (owned by the supervising
-  agent) exactly as documented there: this file does not edit, does not
-  reimplement, and does not copy the tilt response curve. `rotateX` /
-  `rotateY` are currently pinned flat while a human tunes the curve in
-  parallel; every wiring below is written so the card tilts correctly
-  the moment that curve starts returning real degrees.
+  The tilt maths lives in `lib/useTilt.ts`, not here. This file only
+  wires the hook's outputs to the DOM, so retuning how the card feels is
+  a change to the curve in one file rather than to markup in this one.
 
   ----------------------------------------------------------------------
   THE 3D CONTEXT (read before touching the class lists)

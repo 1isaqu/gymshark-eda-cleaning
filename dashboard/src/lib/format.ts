@@ -1,6 +1,4 @@
 /*
-  format.ts
-  =========
   Every number-to-string conversion in the app goes through here.
   Section components must never call `.toFixed()`, `.toLocaleString()`,
   template-literal interpolate a raw number, or otherwise hand-format a

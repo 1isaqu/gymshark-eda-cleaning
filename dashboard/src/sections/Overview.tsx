@@ -1,6 +1,4 @@
 /*
-  Overview.tsx
-  ============
   Section id "overview". Layout family: asymmetric editorial hero +
   oversized numeral column.
 
@@ -53,8 +51,8 @@ export function Overview() {
           into one full width column where text-7xl fits with room. */}
       <div className="grid grid-cols-1 gap-y-10 lg:grid-cols-12 lg:items-end lg:gap-x-12">
         <div className="lg:col-span-7">
-          {/* EYEBROW #1 of the 2 allowed on the page. Its treatment is
-              shared byte for byte with EYEBROW #2 in ImageFinding
+          {/* One of the page's two small-caps labels. Its treatment is
+              shared character for character with the one in ImageFinding
               (font-mono text-xs uppercase tracking-[0.14em] text-accent)
               so the two read as one recurring device. If you restyle one,
               restyle both. */}

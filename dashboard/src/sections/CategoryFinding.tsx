@@ -1,6 +1,4 @@
 /*
-  CategoryFinding.tsx
-  ====================
   Section id "categories". Layout family: paired-bar comparison paired
   with a connected rank-shift diagram. Deliberately not a ranked list
   (that is Overview's layout) and not a sticky funnel (that is

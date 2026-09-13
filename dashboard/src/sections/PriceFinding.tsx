@@ -1,6 +1,4 @@
 /*
-  PriceFinding.tsx
-  ================
   Section id "price". Layout family: full-bleed data plot with anchored
   annotation.
 

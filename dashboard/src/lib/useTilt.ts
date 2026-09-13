@@ -1,19 +1,12 @@
 /*
-  useTilt.ts
-  ==========
   The cursor-tracked 3D tilt used by the product gallery cards.
 
-  OWNERSHIP: this file is owned by the supervising agent, NOT by the
-  gallery agent. Agent E imports and consumes this hook and must not
-  edit or reimplement it. If the hook is missing something the gallery
-  needs, report it instead of forking the maths into GalleryCard.tsx.
+  Kept as a shared hook rather than living inside GalleryCard because
+  the response curve is the visual signature of the whole page. One file
+  means every card tilts with the identical feel, and the curve can be
+  retuned without touching component markup.
 
-  WHY A SHARED HOOK: the tilt response curve is the visual signature of
-  the whole page. Keeping it in one file means every card tilts with the
-  identical feel, and the curve can be retuned in one place without
-  touching component markup.
-
-  MOTION CONTRACT (per CONTRACT.md section 3):
+  Three rules this depends on:
   - Pointer position is a continuous value, so it lives in Motion's
     `useMotionValue`, never in `useState`. `useState` would re-render
     the React tree on every pointer event and collapse on mid-range

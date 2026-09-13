@@ -1,7 +1,5 @@
 /*
-  SiteFooter.tsx
-  ==============
-  Restrained closing credit. Owned by Agent E.
+  Restrained closing credit.
 
   Every fact here is pulled from `findings` (source data + pipeline
   metrics), never hardcoded. No invented company, person, social link,

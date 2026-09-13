@@ -1,7 +1,5 @@
 /*
-  SiteNav.tsx
-  ===========
-  Single-line, scroll-spy site navigation. Owned by Agent E.
+  Single-line, scroll-spy site navigation.
 
   Active-section tracking uses IntersectionObserver (never a scroll
   listener recomputing offsets, per the project's motion rules). Anchor
