@@ -46,34 +46,68 @@ export interface TiltRotation {
 }
 
 /**
- * TODO(human)
- *
+ * Shapes the response. 1 is linear. Above 1 the card stays calmer around
+ * the middle and builds toward the edges, which reads as a heavy panel
+ * rather than a twitchy one. Past about 1.6 the centre feels dead.
+ */
+const EASE_EXPONENT = 1.25;
+
+/**
+ * How much rotation is given back in the corners. Each axis is computed
+ * independently, so a corner would otherwise stack a full X tilt on top
+ * of a full Y tilt and the card would visibly over-rotate exactly where
+ * the pointer is least precise. At a dead corner the pair is scaled to
+ * (1 - this).
+ */
+const CORNER_FALLOFF = 0.22;
+
+/**
  * Map a normalised pointer position to a rotation, in degrees.
  *
  * `nx` and `ny` arrive normalised to the card's own box:
  *     -0.5 = left edge / top edge
  *      0   = dead centre
  *     +0.5 = right edge / bottom edge
- * Both are already clamped to [-0.5, 0.5]; you do not need to re-clamp.
+ * Both are already clamped to [-0.5, 0.5] by the caller.
  *
- * `maxTiltDeg` is the maximum rotation you should ever return on either
- * axis (so each returned value belongs in [-maxTiltDeg, +maxTiltDeg]).
+ * `maxTiltDeg` bounds each axis, so both returned values stay inside
+ * [-maxTiltDeg, +maxTiltDeg].
  *
- * Return `{ rotateX, rotateY }` in degrees.
- *
- * Currently returns a flat card (no tilt) so the build stays green.
- * Replace the body with the response curve you want.
+ * DIRECTION: the surface rises to meet the cursor. Pointer near the top
+ * brings the top edge toward the viewer; pointer near the right brings
+ * the right edge toward the viewer. CSS rotates the other way on both
+ * axes (positive rotateX tips the top AWAY, positive rotateY tips the
+ * right AWAY), which is why X keeps the sign of `ny` and Y flips the
+ * sign of `nx`. This direction is not arbitrary: the specular highlight
+ * in `useTilt` tracks the raw pointer, and a real highlight sits where
+ * the surface faces the viewer. Tilt away from the cursor instead and
+ * the light and the geometry disagree.
  */
 export function tiltFromPointer(
   nx: number,
   ny: number,
   maxTiltDeg: number,
 ): TiltRotation {
-  // TODO(human): implement the pointer -> rotation response curve.
-  void nx;
-  void ny;
-  void maxTiltDeg;
-  return { rotateX: 0, rotateY: 0 };
+  // Rescale the box-normalised [-0.5, 0.5] to a full [-1, 1] swing.
+  const ux = nx * 2;
+  const uy = ny * 2;
+
+  // Ease each axis independently, preserving direction.
+  const easedX = Math.sign(ux) * Math.abs(ux) ** EASE_EXPONENT;
+  const easedY = Math.sign(uy) * Math.abs(uy) ** EASE_EXPONENT;
+
+  // Engagement of BOTH axes at once: 0 anywhere on a centre line (only
+  // one axis is rotating, so nothing is stacking and nothing needs
+  // correcting), 1 in a dead corner. Deliberately not a radial distance:
+  // that would also damp a pure left/right or up/down tilt, where there
+  // is no stacking, and the card would never reach maxTiltDeg at all.
+  const bothAxes = Math.abs(ux) * Math.abs(uy);
+  const falloff = 1 - CORNER_FALLOFF * bothAxes;
+
+  return {
+    rotateX: easedY * maxTiltDeg * falloff,
+    rotateY: -easedX * maxTiltDeg * falloff,
+  };
 }
 
 export interface UseTiltOptions {
